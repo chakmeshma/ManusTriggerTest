@@ -30,7 +30,7 @@ typedef struct ManusTransform
 } ManusTransform;
 
 typedef bool (*FPManusStartAndRun)();
-typedef void (*FPManusGetData)(std::array<ManusTransform, 21>&);
+typedef void (*FPManusGetData)(std::array<ManusTransform, 42>&);
 typedef void (*FPManusShutDown)();
 
 UCLASS()
@@ -56,6 +56,8 @@ public:
 	double RootScale{};
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	double ChildPosMultiplier{};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int NodesIndexOffset{};
 
 protected:
 	// Called when the game starts or when spawned
@@ -70,13 +72,13 @@ private:
 	void SetupNodes();
 	void SetupManus();
 
-	void* ManusDLLHandle{};
+	static void* ManusDLLHandle;
 
-	FPManusStartAndRun ManusStartAndRun;
-	FPManusGetData ManusGetData;
-	FPManusShutDown ManusShutDown;
+	static FPManusStartAndRun ManusStartAndRun;
+	static FPManusGetData ManusGetData;
+	static FPManusShutDown ManusShutDown;
 
-	bool bManusStarted{};
-	bool bManusConnected{};
-	std::array<ManusTransform, 21> skeletonNodes{};
+	static bool bManusStarted;
+	static bool bManusConnected;
+	std::array<ManusTransform, 42> skeletonNodes{};
 };

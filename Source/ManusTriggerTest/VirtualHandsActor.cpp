@@ -51,32 +51,32 @@ void AVirtualHandsActor::Tick(float DeltaTime)
 			skeletonNodes[0].position.z });*/
 
 		RootComponent->SetWorldRotation(FQuat{
-			skeletonNodes[0].rotation.x,
-			skeletonNodes[0].rotation.y,
-			skeletonNodes[0].rotation.z,
-			skeletonNodes[0].rotation.w });
+			skeletonNodes[0 + NodesIndexOffset].rotation.x,
+			skeletonNodes[0 + NodesIndexOffset].rotation.y,
+			skeletonNodes[0 + NodesIndexOffset].rotation.z,
+			skeletonNodes[0 + NodesIndexOffset].rotation.w });
 
 		RootComponent->SetWorldScale3D(FVector{
-			skeletonNodes[0].scale.x * RootScale,
-			skeletonNodes[0].scale.y * RootScale,
-			skeletonNodes[0].scale.z * RootScale });
+			skeletonNodes[0 + NodesIndexOffset].scale.x * RootScale,
+			skeletonNodes[0 + NodesIndexOffset].scale.y * RootScale,
+			skeletonNodes[0 + NodesIndexOffset].scale.z * RootScale });
 
 		for (uint16 i = 0; i < 20; i++) {
 			HandNodes[i]->SetRelativeLocation(FVector{
-				skeletonNodes[i + 1].position.x * ChildPosMultiplier,
-				skeletonNodes[i + 1].position.y * ChildPosMultiplier,
-				skeletonNodes[i + 1].position.z * ChildPosMultiplier });
+				skeletonNodes[i + 1 + NodesIndexOffset].position.x * ChildPosMultiplier,
+				skeletonNodes[i + 1 + NodesIndexOffset].position.y * ChildPosMultiplier,
+				skeletonNodes[i + 1 + NodesIndexOffset].position.z * ChildPosMultiplier });
 
 			HandNodes[i]->SetRelativeRotation(FQuat{
-				skeletonNodes[i + 1].rotation.x,
-				skeletonNodes[i + 1].rotation.y,
-				skeletonNodes[i + 1].rotation.z,
-				skeletonNodes[i + 1].rotation.w });
+				skeletonNodes[i + 1 + NodesIndexOffset].rotation.x,
+				skeletonNodes[i + 1 + NodesIndexOffset].rotation.y,
+				skeletonNodes[i + 1 + NodesIndexOffset].rotation.z,
+				skeletonNodes[i + 1 + NodesIndexOffset].rotation.w });
 
 			HandNodes[i]->SetRelativeScale3D(FVector{
-				skeletonNodes[i + 1].scale.x,
-				skeletonNodes[i + 1].scale.y,
-				skeletonNodes[i + 1].scale.z });
+				skeletonNodes[i + 1 + NodesIndexOffset].scale.x,
+				skeletonNodes[i + 1 + NodesIndexOffset].scale.y,
+				skeletonNodes[i + 1 + NodesIndexOffset].scale.z });
 		}
 	}
 }
@@ -109,45 +109,57 @@ void AVirtualHandsActor::SetupNodes()
 
 void AVirtualHandsActor::SetupManus()
 {
-	FString filePath = FPaths::Combine(*FPaths::ProjectDir(), TEXT("SDKMinimalClient.dll"));
+	if (!ManusDLLHandle) {
 
-	if (FPaths::FileExists(filePath))
-	{
-		ManusDLLHandle = FPlatformProcess::GetDllHandle(*filePath); // Load DLL
+		FString filePath = FPaths::Combine(*FPaths::ProjectDir(), TEXT("SDKMinimalClient.dll"));
 
-		if (ManusDLLHandle)
+		if (FPaths::FileExists(filePath))
 		{
-			// DLL Loaded successfully, you can now call your functions
-			UE_LOG(LogTemp, Warning, TEXT("ManusWrapper DLL Loaded"));
+			ManusDLLHandle = FPlatformProcess::GetDllHandle(*filePath); // Load DLL
 
-			ManusStartAndRun = reinterpret_cast<FPManusStartAndRun>(FPlatformProcess::GetDllExport(ManusDLLHandle, TEXT("StartAndRun")));
-			ManusGetData = reinterpret_cast<FPManusGetData>(FPlatformProcess::GetDllExport(ManusDLLHandle, TEXT("GetData")));
-			ManusShutDown = reinterpret_cast<FPManusShutDown>(FPlatformProcess::GetDllExport(ManusDLLHandle, TEXT("ShutDown")));
+			if (ManusDLLHandle)
+			{
+				// DLL Loaded successfully, you can now call your functions
+				UE_LOG(LogTemp, Warning, TEXT("ManusWrapper DLL Loaded"));
 
-			UE_LOG(LogTemp, Warning, TEXT("ManusStartAndRun: %ld"), reinterpret_cast<uint64>(ManusStartAndRun));
-			UE_LOG(LogTemp, Warning, TEXT("ManusGetData: %ld"), reinterpret_cast<uint64>(ManusGetData));
-			UE_LOG(LogTemp, Warning, TEXT("ManusShutDown: %ld"), reinterpret_cast<uint64>(ManusShutDown));
+				ManusStartAndRun = reinterpret_cast<FPManusStartAndRun>(FPlatformProcess::GetDllExport(ManusDLLHandle, TEXT("StartAndRun")));
+				ManusGetData = reinterpret_cast<FPManusGetData>(FPlatformProcess::GetDllExport(ManusDLLHandle, TEXT("GetData")));
+				ManusShutDown = reinterpret_cast<FPManusShutDown>(FPlatformProcess::GetDllExport(ManusDLLHandle, TEXT("ShutDown")));
 
-			if (ManusStartAndRun()) {
-				bManusStarted = true;
-				bManusConnected = true;
+				UE_LOG(LogTemp, Warning, TEXT("ManusStartAndRun: %ld"), reinterpret_cast<uint64>(ManusStartAndRun));
+				UE_LOG(LogTemp, Warning, TEXT("ManusGetData: %ld"), reinterpret_cast<uint64>(ManusGetData));
+				UE_LOG(LogTemp, Warning, TEXT("ManusShutDown: %ld"), reinterpret_cast<uint64>(ManusShutDown));
+
+				if (ManusStartAndRun()) {
+					bManusStarted = true;
+					bManusConnected = true;
+				}
+
+				if (bManusConnected) {
+					UE_LOG(LogTemp, Warning, TEXT("Manus connected"));
+				}
+				else {
+					UE_LOG(LogTemp, Warning, TEXT("Manus couldn't connect"));
+				}
 			}
-
-			if (bManusConnected) {
-				UE_LOG(LogTemp, Warning, TEXT("Manus connected"));
-			}
-			else {
-				UE_LOG(LogTemp, Warning, TEXT("Manus couldn't connect"));
+			else
+			{
+				// DLL Could not be loaded
+				UE_LOG(LogTemp, Warning, TEXT("ManusWrapper DLL Load Error"));
 			}
 		}
-		else
-		{
-			// DLL Could not be loaded
-			UE_LOG(LogTemp, Warning, TEXT("ManusWrapper DLL Load Error"));
+		else {
+			UE_LOG(LogTemp, Warning, TEXT("ManusWrapper DLL Load Error (Not Found)"));
 		}
-	}
-	else {
-		UE_LOG(LogTemp, Warning, TEXT("ManusWrapper DLL Load Error (Not Found)"));
 	}
 }
 
+
+void* AVirtualHandsActor::ManusDLLHandle = nullptr;
+
+FPManusStartAndRun AVirtualHandsActor::ManusStartAndRun = nullptr;
+FPManusGetData AVirtualHandsActor::ManusGetData = nullptr;
+FPManusShutDown AVirtualHandsActor::ManusShutDown = nullptr;
+
+bool AVirtualHandsActor::bManusStarted = false;
+bool AVirtualHandsActor::bManusConnected = false;
